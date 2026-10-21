@@ -1,0 +1,92 @@
+name: playwright
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *' # nightly: catches changes in smb-sites main and browser updates
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Test a deployed site instead of building smb-sites (e.g. https://neblina.example.com)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      NEBLINA_APP: smb-sites/apps/restaurant
+      BASE_URL: ${{ inputs.base_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the site under test
+        uses: actions/checkout@v4
+        with:
+          repository: MrMeowdyRowdy/smb-sites
+          path: smb-sites
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            smb-sites/package-lock.json
+      - name: Build Neblina (static export to apps/restaurant/out)
+        if: ${{ inputs.base_url == '' }}
+        working-directory: smb-sites
+        run: |
+          npm ci
+          npm run build -w apps/restaurant
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Run the suite (Chromium desktop, Pixel 7, iPhone 14 WebKit)
+        run: npx playwright test
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: error
+      - name: Upload traces and screenshots of failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          if-no-files-found: ignore
+
+  deploy:
+    needs: test
+    # publish the report even when tests fail, on the default branch only
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

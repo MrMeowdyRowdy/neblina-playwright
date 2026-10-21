@@ -1,0 +1,28 @@
+{
+  "name": "neblina-playwright",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright + TypeScript end-to-end suite for the Neblina demo caf\u00e9 site",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "20.19.43",
+    "serve": "14.2.6",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "compression": "1.8.2",
+    "playwright-core": "1.63.0"
+  }
+}
