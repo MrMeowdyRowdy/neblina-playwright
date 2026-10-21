@@ -32,6 +32,7 @@ test.describe('layout', () => {
 
 test.describe('links', () => {
   test('every internal link resolves and every #fragment has a target @regression', async ({ page, request, baseURL }) => {
+    test.slow(); // walks the whole menu/site in one test; WebKit on CI runners needs >30 s
     const origin = new URL(baseURL!).origin;
     const checked = new Map<string, number>();
     const fragments: { from: string; target: string; hash: string }[] = [];

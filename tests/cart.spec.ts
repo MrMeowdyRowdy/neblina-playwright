@@ -68,6 +68,7 @@ test.describe('cart basics', () => {
   });
 
   test('total is exact for a mixed cart of every available item @regression', async ({ page }) => {
+    test.slow(); // walks the whole menu/site in one test; WebKit on CI runners needs >30 s
     const m = new MenuPage(page);
     await m.goto();
     let expected = 0;
