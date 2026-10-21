@@ -11,6 +11,8 @@ const mode = {
 /** Write a cart straight into localStorage (key owned by the app), then reload so the app reads it. */
 async function seedCart(menuPage: MenuPage, value: string) {
   await menuPage.goto();
+  // Wait for the app's own first save after hydration, or it can overwrite the seed with {} (seen on WebKit).
+  await menuPage.page.waitForFunction(() => localStorage.getItem('neblina-cart') !== null);
   await menuPage.page.evaluate((v) => localStorage.setItem('neblina-cart', v), value);
   await menuPage.page.reload();
   await expect(menuPage.add('espresso')).toBeVisible();
