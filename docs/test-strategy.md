@@ -23,7 +23,7 @@ In scope, by risk:
 
 ## Not tested, and why
 - **Pixel-level visual regression.** OS- and font-dependent, flaky across machines; structure and axe cover the same risk more reliably.
-- **Performance and Lighthouse.** Neblina's own CI runs Lighthouse and publishes the numbers on its quality page; this suite only checks that page renders them faithfully. Load testing a static file server proves little (see the k6 repo for load work).
+- **Performance and Lighthouse.** Neblina's own CI runs Lighthouse and publishes the numbers on its quality page; this suite only checks that page renders them faithfully. Load testing a static file server proves little (load testing lives in [k6-test](https://github.com/MrMeowdyRowdy/k6-test)).
 - **WhatsApp itself.** Clicking an order link is stubbed (`context.route`); the contract is the link, not wa.me.
 - **Maps, photos and animation art.** Decorative; the motion layer is exercised only so far as it must not hide content or break axe.
 - **Firefox and desktop Safari.** Chromium (desktop and Pixel) and WebKit (iPhone) cover both engines that matter for the audience; adding desktop WebKit or Firefox is a config line if needed.

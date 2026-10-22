@@ -17,7 +17,7 @@ End-to-end tests for [Neblina](https://github.com/MrMeowdyRowdy/smb-sites/tree/m
 | SEO | `seo.spec.ts` | 7 | `robots.txt`, `sitemap.xml` (every page once, alternates correct, every URL answers 200), JSON-LD against the content files, real 404 status |
 | QR and quality pages | `pages.spec.ts` | 5 | QR image is labelled, square, scannable size, points at the menu; the quality report shows exactly the numbers in `content/quality.json` |
 | Health and links | `links-and-health.spec.ts` | 17 | no console errors, failed requests or third-party requests on load; no horizontal scroll; every internal link returns 200 and every `#fragment` has a target; external `_blank` links carry `noopener` |
-| Accessibility | `a11y.spec.ts` | 15 | axe (WCAG 2.1 AA) on 8 pages, plus states: cart filled, order dialog open, home open and closed; keyboard: skip link, add a dish without a mouse |
+| Accessibility | `a11y.spec.ts` | 15 | axe (WCAG 2.1 AA) on 8 pages, plus states: cart filled, order dialog open, home open and closed; keyboard: skip link, Enter on a focused add button |
 
 Two tests are `test.fixme` because they document a real defect in the app (see [docs/findings.md](docs/findings.md)).
 
@@ -26,7 +26,7 @@ Two tests are `test.fixme` because they document a real defect in the app (see [
 - **Page Objects, small.** `MenuPage` and `HomePage` own the selectors (the app exposes `data-testid` hooks for the cart); specs read as behaviour.
 - **The app's content files are the oracle.** Totals, messages, hours and JSON-LD are computed from `menu.json` / `site.json`, never hard-coded, so a price change does not break the suite and a wrong total does.
 - **Time is controlled, not awaited.** `page.clock.setFixedTime` pins "now" to a Quito wall-clock time (UTC-5). Boundaries (the closing minute, the seasonal window's first and last day) are tested, not just mid-day cases.
-- **Deeper than the app's own smoke tests.** Neblina ships 22 smoke checks of its own; this suite does not repeat them but goes into the cart arithmetic, the message format, time logic, edge data and mobile.
+- **Deeper than the app's own smoke tests.** Neblina ships 22 end-to-end checks of its own; this suite does not repeat them but goes into the cart arithmetic, the message format, time logic, edge data and mobile.
 - **Three profiles, WebKit included.** Mobile layouts and Safari are where static sites break; the same specs run on all three.
 - **No pixel snapshots.** Screenshot baselines depend on OS and font rendering and flake between a laptop and CI. The suite asserts structure, text, geometry and axe instead.
 - **Retries only in CI** (2). Locally a flaky test should fail loudly. Trace and screenshot are kept on failure; `workers: 2` keeps a small machine safe.

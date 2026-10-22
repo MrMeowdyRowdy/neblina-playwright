@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { type Locale } from '../support/content';
+import type { Locale } from '../support/content';
 import { routes } from '../support/routes';
 
 export class HomePage {
@@ -19,6 +19,10 @@ export class HomePage {
   }
   get visitHours() {
     return this.page.locator('[data-visit] address p[data-row]').nth(3);
+  }
+  /** Note shown only until the page hydrates and the live line takes over (and always without JavaScript). */
+  get staticNote() {
+    return this.page.locator('.today-static');
   }
   get seasonal() {
     return this.page.locator('[data-seasonal]');

@@ -11,7 +11,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0, // retries only in CI: locally a flaky test should fail loudly
-  workers: 2, // local WSL has ~15 GB: never more than 2 browser workers; the CI runner has 2 cores
+  workers: 2, // matches the 2-core CI runner and keeps local memory use modest
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL,

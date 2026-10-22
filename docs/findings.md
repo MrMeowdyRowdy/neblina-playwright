@@ -17,7 +17,7 @@ The home page is about 7,200 px tall on an iPhone 14 viewport and re-lays out wh
 ## 5. Notes on the tooling (not app defects)
 - axe sampling during the GSAP reveal reports false contrast failures. The suite scans with reduced motion, which the app honours.
 - `page.clock.install()` + `runFor()` left the home status blank in WebKit. The live-update test pins the clock with `setFixedTime` and lets the page's own 15 s poll notice instead; it takes about 15 s per profile.
-- Keyboard Tab-order tests are skipped on touch profiles and on WebKit (Safari does not Tab to links by default).
+- Keyboard tests are skipped on touch profiles; the skip-link test, which relies on Tab reaching links, is also skipped on WebKit (Safari does not Tab to links by default).
 
 ## 6. Things checked that were fine
 No console errors, failed requests or third-party requests on any of the 8 pages; every internal link and `#fragment` resolves; sitemap lists each page once with correct alternates; JSON-LD matches the content files; corrupt `localStorage` falls back to an empty cart; stale or sold-out IDs in a stored cart are ignored.

@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { menu, site } from './support/content';
-import { allPaths, routes } from './support/routes';
-
-const pathOf = (u: string) => new URL(u).pathname;
+import { allPaths, pathOf, routes } from './support/routes';
 
 test.describe('sitemap.xml and robots.txt', () => {
   test('robots allows crawling and names the sitemap @smoke @regression', async ({ request }) => {
@@ -25,8 +23,8 @@ test.describe('sitemap.xml and robots.txt', () => {
     const locs = urls.map((u) => pathOf(u.match(/<loc>(.*?)<\/loc>/)![1]));
     expect([...locs].sort()).toEqual([...allPaths].sort()); // no page missing, none twice, none extra
 
-    for (const u of urls) {
-      const loc = pathOf(u.match(/<loc>(.*?)<\/loc>/)![1]);
+    for (const [i, u] of urls.entries()) {
+      const loc = locs[i];
       const route = routes.find((r) => r.es === loc || r.en === loc)!;
       const alt = (lang: string) => pathOf(u.match(new RegExp(`hreflang="${lang}" href="([^"]+)"`))![1]);
       expect(alt('es'), loc).toBe(route.es);

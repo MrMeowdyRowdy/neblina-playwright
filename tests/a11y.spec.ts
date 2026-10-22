@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { HomePage } from './pages/HomePage';
 import { MenuPage } from './pages/MenuPage';
+import { cents, item, usd } from './support/content';
 import { allPaths } from './support/routes';
 
 // Contrast is measured on final states: the app's GSAP reveals are skipped under reduced motion, so axe never samples a half-faded element.
@@ -38,12 +39,12 @@ test.describe('axe, WCAG 2.1 AA', () => {
     });
   }
 
-  test('home page at night (closed state) and by day (open state) @regression', async ({ page }) => {
-    for (const when of ['2026-10-21T10:00:20-05:00', '2026-10-21T22:00:20-05:00']) {
+  test('home page by day (open state) and at night (closed state) @regression', async ({ page }) => {
+    for (const [when, state] of [['2026-10-21T10:00:20-05:00', /^Abierto/], ['2026-10-21T22:00:20-05:00', /^Cerrado/]] as const) {
       await page.clock.setFixedTime(new Date(when));
       const home = new HomePage(page);
       await home.goto();
-      await expect(home.status).not.toBeEmpty();
+      await expect(home.status).toHaveText(state);
       expect(await scan(page), when).toEqual([]);
     }
   });
@@ -61,13 +62,13 @@ test.describe('keyboard', () => {
     await expect(page).toHaveURL(/#main$/);
   });
 
-  test('a dish can be added with the keyboard alone @regression', async ({ page, browserName, isMobile }) => {
-    test.skip(isMobile || browserName === 'webkit', 'keyboard Tab flow is desktop Chromium/Firefox behavior');
+  test('a focused add button adds the dish on Enter @regression', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'no keyboard on touch profiles');
     const m = new MenuPage(page);
     await m.goto();
     await m.add('espresso').focus();
     await page.keyboard.press('Enter');
     await expect(m.qty('espresso')).toHaveText('1');
-    await expect(m.total).not.toHaveText('$0,00');
+    await expect(m.total).toHaveText(usd(cents(item('espresso').price), 'es'));
   });
 });

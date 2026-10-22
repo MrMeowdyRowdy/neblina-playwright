@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { HomePage } from './pages/HomePage';
 import { menu, site, type Locale } from './support/content';
 
@@ -9,11 +9,11 @@ const DAY = { Mon: '2026-10-19', Tue: '2026-10-20', Wed: '2026-10-21', Fri: '202
 const hoursOn = (d: string) => site.hours.find((h) => h.days.includes(d))!;
 const ritual = (id: string) => site.rituals.find((r) => r.id === id)!;
 
-async function openAt(page: import('@playwright/test').Page, when: Date, locale: Locale = 'es') {
+async function openAt(page: Page, when: Date, locale: Locale = 'es') {
   await page.clock.setFixedTime(when); // Date.now() is pinned; timers keep running
   const home = new HomePage(page, locale);
   await home.goto();
-  await expect(page.locator('.today-static')).toHaveCount(0); // present until the page has hydrated and the live line took over
+  await expect(home.staticNote).toHaveCount(0);
   return home;
 }
 
@@ -73,7 +73,7 @@ test.describe('open / closed status and the focus line (Quito time)', () => {
     await expect(home.moments.filter({ hasText: ritual('neblina').label.es })).toHaveCount(0);
   });
 
-  test('closing minute is closed, opening minute is open @regression', async ({ page }) => {
+  test('opening minute is open, closing minute is closed @regression', async ({ page }) => {
     const mon = hoursOn('Monday');
     let home = await openAt(page, quito(`${DAY.Mon}T${mon.opens}:00`));
     await expect(home.status).toHaveText(`Abierto ahora · hasta las ${mon.closes}`);
@@ -105,12 +105,12 @@ test.describe('visitor in another time zone still sees Quito time', () => {
   // 03:00 UTC on Tue 20 is Monday 22:00 in Quito, but already Tuesday noon in Tokyo.
   const instant = new Date('2026-10-20T03:00:30Z');
   for (const timezoneId of ['Asia/Tokyo', 'America/Los_Angeles', 'Europe/Madrid']) {
-    test(`${timezoneId} @regression`, async ({ browser, baseURL }) => {
-      const context = await browser.newContext({ baseURL, timezoneId });
-      const page = await context.newPage();
-      const home = await openAt(page, instant);
-      await expect(home.status).toHaveText(`Cerrado · abrimos mañana a las ${hoursOn('Tuesday').opens}`);
-      await context.close();
+    test.describe(() => {
+      test.use({ timezoneId });
+      test(`${timezoneId} @regression`, async ({ page }) => {
+        const home = await openAt(page, instant);
+        await expect(home.status).toHaveText(`Cerrado · abrimos mañana a las ${hoursOn('Tuesday').opens}`);
+      });
     });
   }
 });
@@ -135,7 +135,7 @@ test.describe('without JavaScript the static page is still useful', () => {
     const first = site.hours[0];
     await expect(home.status).toHaveText(`${first.label.es}: ${first.opens} - ${first.closes}`);
     await expect(home.moments).toHaveCount(site.rituals.length);
-    await expect(page.locator('.today-static')).toBeVisible();
+    await expect(home.staticNote).toBeVisible();
   });
 });
 

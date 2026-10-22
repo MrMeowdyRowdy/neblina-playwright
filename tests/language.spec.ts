@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { MenuPage } from './pages/MenuPage';
 import { menu, usd, cents } from './support/content';
-import { routes } from './support/routes';
+import { pathOf, routes } from './support/routes';
 
 const pairs = routes.flatMap((r) => [
   { id: r.id, from: r.es, to: r.en, lang: 'es', toLang: 'en', label: 'Idioma' },
   { id: r.id, from: r.en, to: r.es, lang: 'en', toLang: 'es', label: 'Language' },
 ]);
-const pathOf = (href: string | null) => new URL(href!, 'http://x').pathname;
 
 test.describe('language switcher', () => {
   for (const p of pairs) {
@@ -29,9 +29,9 @@ test.describe('hreflang and canonical', () => {
     test(`${p.from} declares itself canonical and points to its pair @regression`, async ({ page }) => {
       await page.goto(p.from);
       const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
-      expect(pathOf(canonical)).toBe(p.from);
+      expect(pathOf(canonical!)).toBe(p.from);
 
-      const alt = async (lang: string) => pathOf(await page.locator(`link[rel="alternate"][hreflang="${lang}"]`).getAttribute('href'));
+      const alt = async (lang: string) => pathOf((await page.locator(`link[rel="alternate"][hreflang="${lang}"]`).getAttribute('href'))!);
       const es = routes.find((r) => r.id === p.id)!.es;
       expect(await alt(p.lang)).toBe(p.from);
       expect(await alt(p.toLang)).toBe(p.to);
@@ -39,7 +39,7 @@ test.describe('hreflang and canonical', () => {
     });
   }
 
-  test('each page has its own title and description in its language @regression', async ({ page }) => {
+  test('every page has a unique title and a description @regression', async ({ page }) => {
     const seen = new Set<string>();
     for (const p of pairs) {
       await page.goto(p.from);
@@ -56,10 +56,11 @@ test.describe('hreflang and canonical', () => {
 test.describe('menu content per language', () => {
   for (const locale of ['es', 'en'] as const) {
     test(`${locale}: every dish shows its ${locale} name and locale-formatted price @regression`, async ({ page }) => {
-      await page.goto(routes[1][locale]);
-      await expect(page.locator('[data-dish]')).toHaveCount(menu.items.length);
+      const m = new MenuPage(page, locale);
+      await page.goto(m.path);
+      await expect(m.dishes).toHaveCount(menu.items.length);
       for (const it of menu.items) {
-        const dish = page.locator('[data-dish]').filter({ has: page.getByRole('heading', { name: it.name[locale], exact: true }) });
+        const dish = m.dishes.filter({ has: page.getByRole('heading', { name: it.name[locale], exact: true }) });
         await expect(dish, it.id).toHaveCount(1);
         await expect(dish.locator('.dish-price')).toHaveText(usd(cents(it.price), locale));
       }

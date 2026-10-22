@@ -1,22 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { MenuPage } from './pages/MenuPage';
-import { available, cents, item, menu, site, usd, type Locale } from './support/content';
+import { available, cents, item, menu, site, usd } from './support/content';
 
 const intro = { es: 'Hola, quisiera hacer este pedido:', en: 'Hello, I would like to place this order:' };
 const mode = {
   es: { takeaway: 'Para llevar', here: 'Para comer aquí' },
   en: { takeaway: 'To take away', here: 'To eat here' },
 } as const;
-
-/** Write a cart straight into localStorage (key owned by the app), then reload so the app reads it. */
-async function seedCart(menuPage: MenuPage, value: string) {
-  await menuPage.goto();
-  // Wait for the app's own first save after hydration, or it can overwrite the seed with {} (seen on WebKit).
-  await menuPage.page.waitForFunction(() => localStorage.getItem('neblina-cart') !== null);
-  await menuPage.page.evaluate((v) => localStorage.setItem('neblina-cart', v), value);
-  await menuPage.page.reload();
-  await expect(menuPage.add('espresso')).toBeVisible();
-}
 
 test.describe('cart basics', () => {
   test('empty cart: zero total, disabled order button, no quantities @smoke @regression', async ({ page }) => {
@@ -54,6 +44,7 @@ test.describe('cart basics', () => {
       const m = new MenuPage(page, locale);
       await m.goto();
       await m.addItem('espresso');
+      await expect(m.orderBar).toContainText(right);
       await expect(m.orderBar).not.toContainText(wrong);
     });
   }
@@ -70,7 +61,7 @@ test.describe('cart basics', () => {
   });
 
   test('total is exact for a mixed cart of every available item @regression', async ({ page }) => {
-    test.slow(); // walks the whole menu/site in one test; WebKit on CI runners needs >30 s
+    test.slow(); // dozens of clicks in one test; WebKit on CI runners needs >30 s
     const m = new MenuPage(page);
     await m.goto();
     let expected = 0;
@@ -100,7 +91,7 @@ test.describe('cart basics', () => {
     await m.goto();
     for (const it of soldOut) {
       await expect(m.add(it.id)).toHaveCount(0);
-      await expect(page.locator('[data-dish]', { hasText: it.name.es })).toContainText('Agotado');
+      await expect(m.dishes.filter({ hasText: it.name.es })).toContainText('Agotado');
     }
   });
 });
@@ -121,7 +112,7 @@ test.describe('order dialog and WhatsApp message', () => {
     await expect(m.qty('espresso')).toHaveText('1');
   });
 
-  for (const locale of ['es', 'en'] as Locale[]) {
+  for (const locale of ['es', 'en'] as const) {
     for (const link of ['takeaway', 'here'] as const) {
       test(`${locale}: ${link} message lists lines, total and the option @smoke @regression`, async ({ page }) => {
         const m = new MenuPage(page, locale);
@@ -175,8 +166,7 @@ test.describe('persistence and bad stored data', () => {
     await page.reload();
     await expect(m.qty('tigrillo')).toHaveText('2');
     await expect(m.qty('jugo-mora')).toHaveText('1');
-    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('neblina-cart')!));
-    expect(stored).toEqual({ tigrillo: 2, 'jugo-mora': 1 });
+    expect(JSON.parse((await m.storedCart())!)).toEqual({ tigrillo: 2, 'jugo-mora': 1 });
   });
 
   test('the same cart is shared between the Spanish and English menus @regression', async ({ page }) => {
@@ -196,7 +186,8 @@ test.describe('persistence and bad stored data', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     const m = new MenuPage(page);
-    await seedCart(m, '{not json');
+    await m.seedCart('{not json');
+    await expect.poll(() => m.storedCart()).toBe('{}'); // the hydrated app replaced the bad value
     await expect(m.total).toHaveText('$0,00');
     await expect(m.orderButton).toBeDisabled();
     await m.addItem('espresso'); // and it recovers
@@ -209,7 +200,7 @@ test.describe('persistence and bad stored data', () => {
     const stored: Record<string, number> = { ghost: 3, americano: -2, espresso: 2 };
     if (soldOut) stored[soldOut.id] = 1;
     const m = new MenuPage(page);
-    await seedCart(m, JSON.stringify(stored));
+    await m.seedCart(JSON.stringify(stored));
     await expect(m.total).toHaveText(usd(2 * cents(item('espresso').price), 'es'));
     await expect(m.orderBar).toContainText('2 productos');
   });
