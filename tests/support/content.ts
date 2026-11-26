@@ -7,7 +7,7 @@ type MenuItem = { id: string; category: string; name: L10n; description: L10n; p
 type Menu = {
   categories: { id: string; name: L10n }[];
   items: MenuItem[];
-  seasonal: { from: string; to: string; name: L10n; note: L10n };
+  seasonal: { from: string; to: string; name: L10n; note: L10n }[];
 };
 type Site = {
   name: string;
